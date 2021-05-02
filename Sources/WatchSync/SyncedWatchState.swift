@@ -9,7 +9,7 @@ import Foundation
 import WatchConnectivity
 import Combine
 
-@propertyWrapper public class WatchSync<T: Codable> {
+@propertyWrapper public class SyncedWatchState<T: Codable> {
     private var session: WCSession
     private let delegate: WCSessionDelegate
     
