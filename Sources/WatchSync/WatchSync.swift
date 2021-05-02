@@ -17,7 +17,7 @@ import Combine
     
     // SUBJECTS
     private let dataSubject = PassthroughSubject<Data, Never>()
-    private let deviceSubject = PassthroughSubject<WCSession.Device, Never>()
+    private let deviceSubject = PassthroughSubject<Device, Never>()
     private let valueSubject: CurrentValueSubject<T, Error>
     
     // SYNC TIMER RELATED
@@ -25,7 +25,7 @@ import Combine
     private var timerSubscription: AnyCancellable?
     
     // PUBLISHERS
-    public var mostRecentDataChangedByDevice: AnyPublisher<WCSession.Device, Never> {
+    public var mostRecentDataChangedByDevice: AnyPublisher<Device, Never> {
         deviceSubject
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
