@@ -13,19 +13,19 @@ import Combine
     private var session: WCSession
     private let delegate: WCSessionDelegate
     
-    var cancellables = Set<AnyCancellable>()
+    private var cancellables = Set<AnyCancellable>()
     
     // SUBJECTS
     private let dataSubject = PassthroughSubject<Data, Never>()
     private let deviceSubject = PassthroughSubject<WCSession.Device, Never>()
-    private let valueSubject: CurrentValueSubject<T, Never>
+    private let valueSubject: CurrentValueSubject<T, Error>
     
     // SYNC TIMER RELATED
-    let timer: Timer.TimerPublisher
-    var timerSubscription: AnyCancellable?
+    private let timer: Timer.TimerPublisher
+    private var timerSubscription: AnyCancellable?
     
     // PUBLISHERS
-    var mostRecentDataChangedByDevice: AnyPublisher<WCSession.Device, Never> {
+    public var mostRecentDataChangedByDevice: AnyPublisher<WCSession.Device, Never> {
         deviceSubject
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
@@ -33,10 +33,10 @@ import Combine
     
     // INTERNAL RECORD KEEPING
     // THIS HELPS PREVENT UNNECCESARY AND DUPLICATE NETWORK REQUESTS
-    var cacheDate = Date()
-    var cachedEncodedObjectData: Data?
+    private var cacheDate = Date()
+    private var cachedEncodedObjectData: Data?
     
-    var receivedData: AnyPublisher<T, Error> {
+    private var receivedData: AnyPublisher<T, Error> {
         dataSubject
             .removeDuplicates()
             .decode(type: SyncedWatchObject<T>.self, decoder: JSONDecoder())
@@ -62,7 +62,7 @@ import Combine
         }
     }
     
-    public var projectedValue: CurrentValueSubject<T, Never> {
+    public var projectedValue: CurrentValueSubject<T, Error> {
         get { valueSubject }
     }
     
@@ -77,11 +77,7 @@ import Combine
         self.valueSubject = CurrentValueSubject(wrappedValue)
         
         receivedData
-            .sink { _ in
-                fatalError("This should not error, Figure out error handling")
-            } receiveValue: { value in
-                self.valueSubject.value = value
-            }
+            .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .store(in: &cancellables)
 
     }
@@ -89,13 +85,14 @@ import Combine
     private func send(_ object: T) {
         let syncedObject = SyncedWatchObject(dateModified: cacheDate, object: object)
         let encodedObject = try! JSONEncoder().encode(syncedObject)
-        cacheData(encodedObject)
+        
+        cacheObject(encodedData: encodedObject)
         deviceSubject.send(.thisDevice)
         
         if session.isReachable {
             transmit(encodedObject)
         } else {
-            print("Session not current reachable, starting timer")
+            print("Session not currently reachable, retrying sync")
             timerSubscription = timer
                 .autoconnect()
                 .sink { _ in
@@ -116,8 +113,8 @@ import Combine
         }
     }
     
-    func cacheData(_ data: Data) {
-        cachedEncodedObjectData = data
+    private func cacheObject(encodedData: Data) {
+        cachedEncodedObjectData = encodedData
         cacheDate = Date()
     }
 }
