@@ -86,10 +86,11 @@ import Combine
     }
     
     private func send(_ object: T) {
-        let syncedObject = SyncedWatchObject(dateModified: cacheDate, object: object)
+        let now = Date()
+        let syncedObject = SyncedWatchObject(dateModified: now, object: object)
         let encodedObject = try! JSONEncoder().encode(syncedObject)
         
-        cacheObject(encodedData: encodedObject)
+        cacheObject(encodedData: encodedObject, cacheDate: now)
         deviceSubject.send(.thisDevice)
         
         if session.isReachable {
@@ -116,8 +117,9 @@ import Combine
         }
     }
     
-    private func cacheObject(encodedData: Data) {
+    private func cacheObject(encodedData: Data, cacheDate: Date) {
+        print("Caching sent data at: \(cacheDate)")
         cachedEncodedObjectData = encodedData
-        cacheDate = Date()
+        self.cacheDate = cacheDate
     }
 }
