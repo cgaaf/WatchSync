@@ -22,7 +22,7 @@ class SessionDelegater: NSObject, WCSessionDelegate {
     }
     
     func session(_ session: WCSession, didReceiveMessageData messageData: Data, replyHandler: @escaping (Data) -> Void) {
-        print("Received data")
+        print("Received data from other device")
         self.subject.send(messageData)
         
         // Empty data sent back to other device
