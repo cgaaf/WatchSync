@@ -25,7 +25,7 @@ import Combine
     private var timerSubscription: AnyCancellable?
     
     // PUBLISHERS
-    public var mostRecentDataChangedByDevice: AnyPublisher<Device, Never> {
+    public var latestDevice: AnyPublisher<Device, Never> {
         deviceSubject
             .receive(on: DispatchQueue.main)
             .eraseToAnyPublisher()
@@ -85,6 +85,10 @@ import Combine
 
     }
     
+    public func syncWithObject(syncedObject: inout Published<T>) {
+        
+    }
+    
     private func send(_ object: T) {
         let now = Date()
         let syncedObject = SyncedWatchObject(dateModified: now, object: object)
@@ -110,7 +114,7 @@ import Combine
     private func transmit(_ data: Data) {
         print("Transmitting")
         session.sendMessageData(data) { _ in
-            print("Succesul transfer: Cancel timer")
+            print("Succesul transfer: Cancel autoretry")
             self.timerSubscription?.cancel()
         } errorHandler: { error in
             print(error.localizedDescription)
