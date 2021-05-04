@@ -12,7 +12,7 @@ import Combine
 @propertyWrapper public class SyncedWatchState<T: Codable>: DynamicProperty {
     private var session: WCSession
     private let delegate: WCSessionDelegate
-//    private let syncedObject: Observable?
+    //    private let syncedObject: Observable?
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -87,12 +87,12 @@ import Combine
     
     public func syncWithObject<Observable: ObservableObject>(_ object: Observable) {
         let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
-            valueSubject
-                .replaceError(with: wrappedValue)
-                .sink { _ in
-                    syncedObject.send()
-                }
-                .store(in: &cancellables)
+        valueSubject
+            .replaceError(with: wrappedValue)
+            .sink { _ in
+                syncedObject.send()
+            }
+            .store(in: &cancellables)
     }
     
     private func send(_ object: T) {
@@ -131,5 +131,16 @@ import Combine
         print("Caching sent data at: \(cacheDate)")
         cachedEncodedObjectData = encodedData
         self.cacheDate = cacheDate
+    }
+}
+
+public extension CurrentValueSubject {
+    func syncWithObject<Observable: ObservableObject>(_ object: Observable) -> AnyCancellable {
+        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
+        return self
+            .replaceError(with: self.value)
+            .sink { _ in
+                syncedObject.send()
+            }
     }
 }
