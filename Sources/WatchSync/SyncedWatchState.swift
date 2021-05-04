@@ -70,7 +70,7 @@ import Combine
         get { valueSubject }
     }
     
-    public init<Observable: ObservableObjectPublisher>(wrappedValue: T, session: WCSession = .default, autoRetryFor timeInterval: TimeInterval = 2, publishOn syncedObject: Observable? = nil) {
+    public init(wrappedValue: T, session: WCSession = .default, autoRetryFor timeInterval: TimeInterval = 2) {
         self.delegate = SessionDelegater(subject: dataSubject)
         self.session = session
         self.session.delegate = self.delegate
@@ -83,16 +83,16 @@ import Combine
         receivedData
             .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .store(in: &cancellables)
-        
-        if let syncedObject = syncedObject {
+    }
+    
+    public func syncWithObject<Observable: ObservableObjectPublisher>(_ object: Observable) {
+//        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
             valueSubject
                 .replaceError(with: wrappedValue)
                 .sink { _ in
-                    syncedObject.send()
+                    object.send()
                 }
                 .store(in: &cancellables)
-        }
-        
     }
     
     private func send(_ object: T) {
