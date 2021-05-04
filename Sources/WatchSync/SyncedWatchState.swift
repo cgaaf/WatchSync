@@ -12,6 +12,7 @@ import Combine
 @propertyWrapper public class SyncedWatchState<T: Codable>: DynamicProperty {
     private var session: WCSession
     private let delegate: WCSessionDelegate
+//    private let syncedObject: Observable?
     
     private var cancellables = Set<AnyCancellable>()
     
@@ -69,7 +70,7 @@ import Combine
         get { valueSubject }
     }
     
-    public init(wrappedValue: T, session: WCSession = .default, autoRetryFor timeInterval: TimeInterval = 2) {
+    public init<Observable: ObservableObjectPublisher>(wrappedValue: T, session: WCSession = .default, autoRetryFor timeInterval: TimeInterval = 2, publishOn syncedObject: Observable? = nil) {
         self.delegate = SessionDelegater(subject: dataSubject)
         self.session = session
         self.session.delegate = self.delegate
@@ -82,10 +83,15 @@ import Combine
         receivedData
             .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .store(in: &cancellables)
-
-    }
-    
-    public func syncWithObject(syncedObject: inout Published<T>) {
+        
+        if let syncedObject = syncedObject {
+            valueSubject
+                .replaceError(with: wrappedValue)
+                .sink { _ in
+                    syncedObject.send()
+                }
+                .store(in: &cancellables)
+        }
         
     }
     
