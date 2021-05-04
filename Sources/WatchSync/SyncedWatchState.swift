@@ -85,12 +85,12 @@ import Combine
             .store(in: &cancellables)
     }
     
-    public func syncWithObject<Observable: ObservableObjectPublisher>(_ object: Observable) {
-//        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
+    public func syncWithObject<Observable: ObservableObject>(_ object: Observable) {
+        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
             valueSubject
                 .replaceError(with: wrappedValue)
                 .sink { _ in
-                    object.send()
+                    syncedObject.send()
                 }
                 .store(in: &cancellables)
     }
