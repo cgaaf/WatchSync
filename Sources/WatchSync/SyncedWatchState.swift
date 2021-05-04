@@ -5,11 +5,11 @@
 //  Created by Chris Gaafary on 5/1/21.
 //
 
-import Foundation
+import SwiftUI
 import WatchConnectivity
 import Combine
 
-@propertyWrapper public class SyncedWatchState<T: Codable> {
+@propertyWrapper public class SyncedWatchState<T: Codable>: DynamicProperty {
     private var session: WCSession
     private let delegate: WCSessionDelegate
     
