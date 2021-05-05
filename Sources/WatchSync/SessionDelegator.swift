@@ -9,12 +9,9 @@ import Combine
 import WatchConnectivity
 
 class SessionDelegater: NSObject, WCSessionDelegate {
-    let subject: PassthroughSubject<Data, Never>
+    static let syncedStateDelegate = SessionDelegater()
     
-    init(subject: PassthroughSubject<Data, Never>) {
-        self.subject = subject
-        super.init()
-    }
+    let dataSubject = PassthroughSubject<Data, Never>()
     
     func session(_ session: WCSession, activationDidCompleteWith activationState: WCSessionActivationState, error: Error?) {
         // Protocol comformance only
@@ -23,7 +20,7 @@ class SessionDelegater: NSObject, WCSessionDelegate {
     
     func session(_ session: WCSession, didReceiveMessageData messageData: Data, replyHandler: @escaping (Data) -> Void) {
         print("Received data from other device")
-        self.subject.send(messageData)
+        self.dataSubject.send(messageData)
         
         // Empty data sent back to other device
         // to show evidence that data was received
