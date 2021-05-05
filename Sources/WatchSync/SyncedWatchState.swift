@@ -86,8 +86,11 @@ import Combine
             set { fatalError() }
         }
     
-    public var projectedValue: CurrentValueSubject<Value, Error> {
-        get { valueSubject }
+    public var projectedValue: (value: AnyPublisher<Value, Error>, device: AnyPublisher<Device, Never>) {
+        get {(
+            value: valueSubject.eraseToAnyPublisher(),
+            device: deviceSubject.eraseToAnyPublisher()
+        )}
     }
     
     public init(wrappedValue: Value, session: WCSession = .syncedStateSession, autoRetryEvery timeInterval: TimeInterval = 2) {
