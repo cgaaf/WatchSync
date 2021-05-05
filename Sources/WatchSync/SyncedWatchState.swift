@@ -16,11 +16,11 @@ import Combine
         storage storageKeyPath: ReferenceWritableKeyPath<T, SyncedWatchState>
     ) -> Value {
         get {
-            let enclosingInstance = instance[keyPath: storageKeyPath]
             let publisher = instance.objectWillChange as! ObservableObjectPublisher
             // This assumption is definitely not safe to make in
             // production code, but it's fine for this demo purpose:
             
+            let enclosingInstance = instance[keyPath: storageKeyPath]
             enclosingInstance.observableObjectPublisher = publisher
             return enclosingInstance.valueSubject.value
         }
@@ -28,10 +28,13 @@ import Combine
             let publisher = instance.objectWillChange as! ObservableObjectPublisher
             // This assumption is definitely not safe to make in
             // production code, but it's fine for this demo purpose:
-            publisher.send()
-
+            
+            let enclosingInstance = instance[keyPath: storageKeyPath]
+            enclosingInstance.observableObjectPublisher = publisher
+            
             instance[keyPath: storageKeyPath].send(newValue)
             instance[keyPath: storageKeyPath].valueSubject.value = newValue
+            enclosingInstance.observableObjectPublisher?.send()
         }
     }
     
