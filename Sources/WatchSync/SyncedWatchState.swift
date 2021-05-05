@@ -16,13 +16,18 @@ import Combine
         storage storageKeyPath: ReferenceWritableKeyPath<T, SyncedWatchState>
     ) -> Value {
         get {
-            instance[keyPath: storageKeyPath].valueSubject.value
-        }
-        set {
-            let publisher = instance.objectWillChange
+            let publisher = instance.objectWillChange as! ObservableObjectPublisher
             // This assumption is definitely not safe to make in
             // production code, but it's fine for this demo purpose:
-            (publisher as! ObservableObjectPublisher).send()
+            publisher.send()
+            let valueSubject = instance[keyPath: storageKeyPath].valueSubject
+            return valueSubject.value
+        }
+        set {
+            let publisher = instance.objectWillChange as! ObservableObjectPublisher
+            // This assumption is definitely not safe to make in
+            // production code, but it's fine for this demo purpose:
+            publisher.send()
 
             instance[keyPath: storageKeyPath].send(newValue)
             instance[keyPath: storageKeyPath].valueSubject.value = newValue
@@ -104,18 +109,6 @@ import Combine
             .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .store(in: &cancellables)
     }
-    
-    /// Connects to an ObservableObject to trigger viewupdates in SwiftUI. This could possible break in the future
-    /// - Parameter object: The ObservableObject that will trigger objectWillChange.send() each time a new value is received.
-//    public func syncWithObject<Observable: ObservableObject>(_ object: Observable) {
-//        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
-//        valueSubject
-//            .replaceError(with: wrappedValue)
-//            .sink { _ in
-//                syncedObject.send()
-//            }
-//            .store(in: &cancellables)
-//    }
     
     private func send(_ object: Value) {
         let now = Date()
