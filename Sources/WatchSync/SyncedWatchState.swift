@@ -5,18 +5,17 @@
 //  Created by Chris Gaafary on 5/1/21.
 //
 
-import Foundation
+import SwiftUI
 import WatchConnectivity
 import Combine
 
-@propertyWrapper public class SyncedWatchState<T: Codable> {
+@propertyWrapper public class SyncedWatchState<T: Codable>: DynamicProperty {
     private var session: WCSession
-    private let delegate: WCSessionDelegate
     
     private var cancellables = Set<AnyCancellable>()
     
     // SUBJECTS
-    private let dataSubject = PassthroughSubject<Data, Never>()
+    private let dataSubject: PassthroughSubject<Data, Never>
     private let deviceSubject = PassthroughSubject<Device, Never>()
     private let valueSubject: CurrentValueSubject<T, Error>
     
@@ -36,6 +35,7 @@ import Combine
     private var cacheDate = Date()
     private var cachedEncodedObjectData: Data?
     
+    //
     private var receivedData: AnyPublisher<T, Error> {
         dataSubject
             .removeDuplicates()
@@ -69,24 +69,27 @@ import Combine
         get { valueSubject }
     }
     
-    public init(wrappedValue: T, session: WCSession = .default, autoRetryFor timeInterval: TimeInterval = 2) {
-        self.delegate = SessionDelegater(subject: dataSubject)
+    public init(wrappedValue: T, session: WCSession = .syncedStateSession, autoRetryEvery timeInterval: TimeInterval = 2) {
         self.session = session
-        self.session.delegate = self.delegate
-        self.session.activate()
-        
+        self.dataSubject = SessionDelegater.syncedStateDelegate.dataSubject
         self.timer = Timer.publish(every: timeInterval, on: .main, in: .default)
-        
         self.valueSubject = CurrentValueSubject(wrappedValue)
         
         receivedData
             .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .store(in: &cancellables)
-
     }
     
-    public func syncWithObject(syncedObject: inout Published<T>) {
-        
+    /// Connects to an ObservableObject to trigger viewupdates in SwiftUI. This could possible break in the future
+    /// - Parameter object: The ObservableObject that will trigger objectWillChange.send() each time a new value is received.
+    public func syncWithObject<Observable: ObservableObject>(_ object: Observable) {
+        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
+        valueSubject
+            .replaceError(with: wrappedValue)
+            .sink { _ in
+                syncedObject.send()
+            }
+            .store(in: &cancellables)
     }
     
     private func send(_ object: T) {
@@ -125,5 +128,16 @@ import Combine
         print("Caching sent data at: \(cacheDate)")
         cachedEncodedObjectData = encodedData
         self.cacheDate = cacheDate
+    }
+}
+
+public extension CurrentValueSubject {
+    func syncWithObject<Observable: ObservableObject>(_ object: Observable) -> AnyCancellable {
+        let syncedObject: ObservableObjectPublisher = object.objectWillChange as! ObservableObjectPublisher
+        return self
+            .replaceError(with: self.value)
+            .sink { _ in
+                syncedObject.send()
+            }
     }
 }
