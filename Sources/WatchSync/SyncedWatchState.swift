@@ -16,12 +16,13 @@ import Combine
         storage storageKeyPath: ReferenceWritableKeyPath<T, SyncedWatchState>
     ) -> Value {
         get {
+            let enclosingInstance = instance[keyPath: storageKeyPath]
             let publisher = instance.objectWillChange as! ObservableObjectPublisher
             // This assumption is definitely not safe to make in
             // production code, but it's fine for this demo purpose:
-            publisher.send()
-            let valueSubject = instance[keyPath: storageKeyPath].valueSubject
-            return valueSubject.value
+            
+            enclosingInstance.observableObjectPublisher = publisher
+            return enclosingInstance.valueSubject.value
         }
         set {
             let publisher = instance.objectWillChange as! ObservableObjectPublisher
@@ -36,6 +37,7 @@ import Combine
     
     private var session: WCSession
     private var cancellables = Set<AnyCancellable>()
+    private var observableObjectPublisher: ObservableObjectPublisher?
     
     // SUBJECTS
     private let dataSubject: PassthroughSubject<Data, Never>
@@ -58,7 +60,6 @@ import Combine
     private var cacheDate = Date()
     private var cachedEncodedObjectData: Data?
     
-    //
     private var receivedData: AnyPublisher<Value, Error> {
         dataSubject
             .removeDuplicates()
@@ -80,15 +81,8 @@ import Combine
             .eraseToAnyPublisher()
     }
     
-//    public var wrappedValue: Value {
-//        get { valueSubject.value }
-//        set {
-//            send(newValue)
-//            valueSubject.value = newValue
-//        }
-//    }
     @available(*, unavailable,
-            message: "@Published can only be applied to classes"
+            message: "@SyncedWatchState can only be applied to classes"
         )
         public var wrappedValue: Value {
             get { fatalError() }
