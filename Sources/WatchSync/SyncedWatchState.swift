@@ -36,7 +36,7 @@ import Combine
     }
     
     private var session: WCSession
-    private var cancellables = Set<AnyCancellable>()
+    private var subscriptions = Set<AnyCancellable>()
     private var observableObjectPublisher: ObservableObjectPublisher?
     
     // SUBJECTS
@@ -48,16 +48,9 @@ import Combine
     private let timer: Timer.TimerPublisher
     private var timerSubscription: AnyCancellable?
     
-    // PUBLISHERS
-    public var latestDevice: AnyPublisher<Device, Never> {
-        deviceSubject
-            .receive(on: DispatchQueue.main)
-            .eraseToAnyPublisher()
-    }
-    
     // INTERNAL RECORD KEEPING
     // THIS HELPS PREVENT UNNECCESARY AND DUPLICATE NETWORK REQUESTS
-    private var cacheDate = Date()
+    private var cacheDate: Date?
     private var cachedEncodedObjectData: Data?
     
     private var receivedData: AnyPublisher<Value, Error> {
@@ -67,12 +60,16 @@ import Combine
             .handleEvents(receiveOutput: { syncedObject in
                 print("Decoded received object: \(syncedObject.object)")
                 print("Object modifcation date: \(syncedObject.dateModified)")
-                if self.cacheDate < syncedObject.dateModified {
-                    self.deviceSubject.send(.otherDevice)
+                
+                if let date = self.cacheDate {
+                    if date < syncedObject.dateModified {
+                        self.deviceSubject.send(.otherDevice)
+                    }
                 }
             })
             .filter({ dataPacket in
-                let filtered = self.cacheDate < dataPacket.dateModified
+                guard let cacheDate = self.cacheDate else { return false }
+                let filtered = cacheDate < dataPacket.dateModified
                 print("Incoming more recent than cached data: \(filtered)")
                 return filtered
             })
@@ -104,7 +101,7 @@ import Combine
                 self.valueSubject.send(newValue)
                 self.observableObjectPublisher?.send()
             })
-            .store(in: &cancellables)
+            .store(in: &subscriptions)
     }
     
     private func send(_ object: Value) {
@@ -130,9 +127,9 @@ import Combine
     }
     
     private func transmit(_ data: Data) {
-        print("Transmitting")
+        print("Transmitting data to other device...")
         session.sendMessageData(data) { _ in
-            print("Succesul transfer: Cancel autoretry")
+            print("Succesul data transfer")
             self.timerSubscription?.cancel()
         } errorHandler: { error in
             print(error.localizedDescription)
