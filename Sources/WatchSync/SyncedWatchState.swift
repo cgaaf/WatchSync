@@ -100,7 +100,6 @@ import Combine
         self.valueSubject = CurrentValueSubject(wrappedValue)
         
         receivedData
-//            .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
             .sink(receiveCompletion: valueSubject.send, receiveValue: { newValue in
                 self.valueSubject.send(newValue)
                 self.observableObjectPublisher?.send()
@@ -119,7 +118,7 @@ import Combine
         if session.isReachable {
             transmit(encodedObject)
         } else {
-            print("Session not currently reachable, retrying sync")
+            print("Session not currently reachable, retrying transmission")
             timerSubscription = timer
                 .autoconnect()
                 .sink { _ in
@@ -141,7 +140,6 @@ import Combine
     }
     
     private func cacheObject(encodedData: Data, cacheDate: Date) {
-        print("Caching sent data at: \(cacheDate)")
         cachedEncodedObjectData = encodedData
         self.cacheDate = cacheDate
     }
