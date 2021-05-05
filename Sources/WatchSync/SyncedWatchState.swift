@@ -100,7 +100,11 @@ import Combine
         self.valueSubject = CurrentValueSubject(wrappedValue)
         
         receivedData
-            .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
+//            .sink(receiveCompletion: valueSubject.send, receiveValue: valueSubject.send)
+            .sink(receiveCompletion: valueSubject.send, receiveValue: { newValue in
+                self.valueSubject.send(newValue)
+                self.observableObjectPublisher?.send()
+            })
             .store(in: &cancellables)
     }
     
