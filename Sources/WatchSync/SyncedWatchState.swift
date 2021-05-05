@@ -61,17 +61,18 @@ import Combine
             .removeDuplicates()
             .decode(type: SyncedWatchObject<Value>.self, decoder: JSONDecoder())
             .handleEvents(receiveOutput: { syncedObject in
-                print("Decoded received object: \(syncedObject.object)")
-                print("Object modifcation date: \(syncedObject.dateModified)")
-                
-                if let date = self.cacheDate {
-                    if date < syncedObject.dateModified {
+                if let cacheDate = self.cacheDate {
+                    if cacheDate < syncedObject.dateModified {
+                        print("Updating deviceSubject to other device")
                         self.deviceSubject.send(.otherDevice)
                     }
                 }
             })
             .filter({ dataPacket in
-                guard let cacheDate = self.cacheDate else { return false }
+                guard let cacheDate = self.cacheDate else {
+                    print("No previous data cache. Update with incoming data")
+                    return true
+                }
                 let filtered = cacheDate < dataPacket.dateModified
                 print("Incoming more recent than cached data: \(filtered)")
                 return filtered
