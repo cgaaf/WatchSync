@@ -1,5 +1,4 @@
 # WatchSync
-___
 WatchSync provides a property wrapper to encapsulate basic sharing of a codable object between an iPhone and AppleWatch using Apple's WatchConnectivity framework. 
 
 ## How to use
@@ -28,6 +27,7 @@ class Counter: ObservableObject {
 The following SwiftUI View can use this object by accessing the Counter object
 
 ```swift
+import SwiftUI
 import WatchSync
 
 struct ContentView: View {
